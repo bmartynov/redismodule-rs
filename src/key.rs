@@ -331,10 +331,14 @@ impl RedisKeyWritable {
     pub fn set_value<T>(&self, redis_type: &RedisType, value: T) -> Result<(), RedisError> {
         verify_type(self.key_inner, redis_type)?;
         let value = Box::into_raw(Box::new(value)).cast::<c_void>();
+
+        let raw_type = redis_type.raw_type.get().
+            ok_or(RedisError::Str("type not initialized"))?;
+
         let status: raw::Status = unsafe {
             raw::RedisModule_ModuleTypeSetValue.unwrap()(
                 self.key_inner,
-                *redis_type.raw_type.borrow(),
+                *raw_type,
                 value,
             )
         }
@@ -533,11 +537,14 @@ fn to_raw_mode(mode: KeyMode) -> raw::KeyMode {
 pub fn verify_type(key_inner: *mut raw::RedisModuleKey, redis_type: &RedisType) -> RedisResult {
     let key_type: KeyType = unsafe { raw::RedisModule_KeyType.unwrap()(key_inner) }.into();
 
+    let expected_type = redis_type.raw_type.get().
+        ok_or(RedisError::Str("type not initialized"))?;
+
     if key_type != KeyType::Empty {
         // The key exists; check its type
         let raw_type = unsafe { raw::RedisModule_ModuleTypeGetType.unwrap()(key_inner) };
 
-        if raw_type != *redis_type.raw_type.borrow() {
+        if raw_type != *expected_type {
             return Err(RedisError::Str("Existing key has wrong Redis type"));
         }
     }
