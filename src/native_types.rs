@@ -1,6 +1,5 @@
-use std::cell::RefCell;
 use std::ffi::CString;
-use std::ptr;
+use once_cell::sync::OnceCell;
 
 use crate::raw;
 
@@ -8,7 +7,7 @@ pub struct RedisType {
     name: &'static str,
     version: i32,
     type_methods: raw::RedisModuleTypeMethods,
-    pub raw_type: RefCell<*mut raw::RedisModuleType>,
+    pub raw_type: OnceCell<*mut raw::RedisModuleType>,
 }
 
 // We want to be able to create static instances of this type,
@@ -26,7 +25,7 @@ impl RedisType {
             name,
             version,
             type_methods,
-            raw_type: RefCell::new(ptr::null_mut()),
+            raw_type: OnceCell::new(),
         }
     }
 
@@ -54,7 +53,7 @@ impl RedisType {
             return Err("Error: created data type is null");
         }
 
-        *self.raw_type.borrow_mut() = redis_type;
+        self.raw_type.set(redis_type).map_err(|_| "Error: data type already created")?;
 
         redis_log(
             ctx,
