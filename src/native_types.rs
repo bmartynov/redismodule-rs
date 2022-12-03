@@ -3,6 +3,7 @@ use once_cell::sync::OnceCell;
 
 use crate::raw;
 
+#[derive(Clone)]
 pub struct RedisType {
     name: &'static str,
     version: i32,
