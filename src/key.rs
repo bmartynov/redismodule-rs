@@ -102,9 +102,9 @@ impl RedisKey {
         &self,
         fields: &'a [A],
     ) -> Result<Option<HMGetResult<'a, A, B>>, RedisError>
-    where
-        A: Into<Vec<u8>> + Clone,
-        RedisString: Into<B>,
+        where
+            A: Into<Vec<u8>> + Clone,
+            RedisString: Into<B>,
     {
         let val = if self.is_null() {
             None
@@ -129,6 +129,15 @@ impl RedisKey {
         exclusive: bool,
     ) -> Result<StreamIterator, RedisError> {
         StreamIterator::new(self, from, to, exclusive)
+    }
+
+
+    pub unsafe fn ctx(&self) -> *mut raw::RedisModuleCtx {
+        self.ctx
+    }
+
+    pub unsafe fn key_inner(&self) -> *mut raw::RedisModuleKey {
+        self.key_inner
     }
 }
 
@@ -197,9 +206,9 @@ impl RedisKeyWritable {
         &self,
         fields: &'a [A],
     ) -> Result<HMGetResult<'a, A, B>, RedisError>
-    where
-        A: Into<Vec<u8>> + Clone,
-        RedisString: Into<B>,
+        where
+            A: Into<Vec<u8>> + Clone,
+            RedisString: Into<B>,
     {
         Ok(HMGetResult {
             fields,
@@ -350,7 +359,7 @@ impl RedisKeyWritable {
                 value,
             )
         }
-        .into();
+            .into();
 
         status.into()
     }
@@ -374,14 +383,22 @@ impl RedisKeyWritable {
             Ok(res as usize)
         }
     }
+
+    pub unsafe fn ctx(&self) -> *mut raw::RedisModuleCtx {
+        self.ctx
+    }
+
+    pub unsafe fn key_inner(&self) -> *mut raw::RedisModuleKey {
+        self.key_inner
+    }
 }
 
 /// Opaque type used to hold multi-get results. Use the provided methods to convert
 /// the results into the desired type of Rust collection.
 pub struct HMGetResult<'a, A, B>
-where
-    A: Into<Vec<u8>> + Clone,
-    RedisString: Into<B>,
+    where
+        A: Into<Vec<u8>> + Clone,
+        RedisString: Into<B>,
 {
     fields: &'a [A],
     values: Vec<Option<RedisString>>,
@@ -389,9 +406,9 @@ where
 }
 
 pub struct HMGetIter<'a, A, B>
-where
-    A: Into<Vec<u8>>,
-    RedisString: Into<B>,
+    where
+        A: Into<Vec<u8>>,
+        RedisString: Into<B>,
 {
     fields_iter: std::slice::Iter<'a, A>,
     values_iter: std::vec::IntoIter<Option<RedisString>>,
@@ -399,9 +416,9 @@ where
 }
 
 impl<'a, A, B> Iterator for HMGetIter<'a, A, B>
-where
-    A: Into<Vec<u8>> + Clone,
-    RedisString: Into<B>,
+    where
+        A: Into<Vec<u8>> + Clone,
+        RedisString: Into<B>,
 {
     type Item = (A, B);
 
@@ -417,7 +434,7 @@ where
                         a.expect("field and value slices not of same length")
                             .clone(),
                         rs.into(),
-                    ))
+                    ));
                 }
             }
         }
@@ -425,9 +442,9 @@ where
 }
 
 impl<'a, A, B> IntoIterator for HMGetResult<'a, A, B>
-where
-    A: Into<Vec<u8>> + Clone,
-    RedisString: Into<B>,
+    where
+        A: Into<Vec<u8>> + Clone,
+        RedisString: Into<B>,
 {
     type Item = (A, B);
     type IntoIter = HMGetIter<'a, A, B>;
@@ -508,8 +525,8 @@ fn hash_mget_key<T>(
     key: *mut raw::RedisModuleKey,
     fields: &[T],
 ) -> Result<Vec<Option<RedisString>>, RedisError>
-where
-    T: Into<Vec<u8>> + Clone,
+    where
+        T: Into<Vec<u8>> + Clone,
 {
     const BATCH_SIZE: usize = 12;
 
